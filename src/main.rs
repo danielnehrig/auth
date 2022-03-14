@@ -3,44 +3,30 @@ pub mod auth {
 }
 
 use auth::auth_server::{Auth, AuthServer};
-use tonic::transport::Server;
+use tonic::{transport::Server, Response, Status};
 
 #[derive(Debug, Default)]
 struct AuthService;
 
 #[tonic::async_trait]
 impl Auth for AuthService {
-    fn register<'life0, 'async_trait>(
-        &'life0 self,
+    async fn register(
+        &self,
         request: tonic::Request<auth::Credentials>,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = Result<tonic::Response<auth::Token>, tonic::Status>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        Self: 'async_trait,
-    {
-        todo!()
+    ) -> Result<Response<auth::Token>, Status> {
+        println!("Got a request: {:?}", request);
+
+        let reply = auth::Token {
+            auth: format!("Hello {}!", request.into_inner().username).into(),
+        };
+
+        Ok(Response::new(reply))
     }
 
-    fn login<'life0, 'async_trait>(
-        &'life0 self,
-        request: tonic::Request<auth::Credentials>,
-    ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = Result<tonic::Response<auth::Token>, tonic::Status>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
-    >
-    where
-        'life0: 'async_trait,
-        Self: 'async_trait,
-    {
+    async fn login(
+        &self,
+        _request: tonic::Request<auth::Credentials>,
+    ) -> Result<Response<auth::Token>, Status> {
         todo!()
     }
 }

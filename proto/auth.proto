@@ -28,13 +28,13 @@ service Auth {
   //
   // A feature with an empty name is returned if there's no feature at the given
   // position.
-  rpc Register(Credentials) returns (Token) {}
+  rpc Register(Credentials) returns (Token);
 
   // A client-to-server streaming RPC.
   //
   // Accepts a stream of Points on a route being traversed, returning a
   // RouteSummary when traversal is completed.
-  rpc Login(Credentials) returns (Token) {}
+  rpc Login(Credentials) returns (Token);
 }
 
 message Credentials {
