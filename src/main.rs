@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use auth::auth_server::{Auth, AuthServer};
 use futures::stream::StreamExt;
-use mongodb::options::ClientOptions;
+use mongodb::{bson::doc, options::ClientOptions};
 use serde::{Deserialize, Serialize};
 use tonic::{transport::Server, Response, Status};
 
@@ -32,26 +32,48 @@ impl Auth for AuthService {
         let db = self.client.default_database().unwrap();
         let col = db.collection::<Credentials>("users");
 
-        let reply = auth::Token {
-            auth: format!("Hello {}!", request.into_inner().username).into(),
-        };
+        let req_in = request.into_inner().clone();
 
-        let data = col
-            .find(None, None)
+        let res = col
+            .insert_one(
+                Credentials {
+                    username: req_in.username.clone(),
+                    password: req_in.password.clone(),
+                },
+                None,
+            )
             .await
-            .unwrap()
-            .map(|e| e.unwrap())
-            .collect::<Vec<Credentials>>()
-            .await;
+            .unwrap();
+
+        let reply = auth::Token {
+            auth: format!("Hello {}!", req_in.username.clone()).into(),
+        };
 
         Ok(Response::new(reply))
     }
 
     async fn login(
         &self,
-        _request: tonic::Request<auth::Credentials>,
+        request: tonic::Request<auth::Credentials>,
     ) -> Result<Response<auth::Token>, Status> {
-        todo!()
+        println!("Got a request: {:?}", request);
+
+        let db = self.client.default_database().unwrap();
+        let col = db.collection::<Credentials>("users");
+
+        let req_in = request.into_inner().clone();
+
+        let res = col
+            .find_one(doc! {"username": req_in.username.clone()}, None)
+            .await
+            .unwrap()
+            .unwrap();
+
+        let reply = auth::Token {
+            auth: format!("{}", res.username.clone()).into(),
+        };
+
+        Ok(Response::new(reply))
     }
 }
 
