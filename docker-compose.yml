@@ -1,0 +1,30 @@
+version: '3'
+services:
+  #  rust-api:
+    #  build: .
+    #  ports:
+      #  - "9001:9001"
+    #  depends_on:
+      #  - example-db
+    #  environment:
+      #  - PORT=9001
+      #  - MONGO_HOST=example-db
+      #  - MONGO_PORT=27017
+    #  networks:
+      #  - default
+
+  example-db:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - example-db:/example-db/db
+    networks:
+      - default
+
+networks:
+  default:
+    driver: bridge
+
+volumes:
+  example-db:
