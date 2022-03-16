@@ -2,12 +2,15 @@ pub mod auth {
     tonic::include_proto!("auth");
 }
 
-use std::sync::Arc;
-
 use auth::auth_server::{Auth, AuthServer};
 use futures::stream::StreamExt;
 use mongodb::{bson::doc, options::ClientOptions};
+use pbkdf2::{
+    password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+    Pbkdf2,
+};
 use serde::{Deserialize, Serialize};
+use std::sync::Arc;
 use tonic::{transport::Server, Response, Status};
 
 #[derive(Debug)]
@@ -33,12 +36,17 @@ impl Auth for AuthService {
         let col = db.collection::<Credentials>("users");
 
         let req_in = request.into_inner().clone();
+        let salt = SaltString::generate(&mut OsRng);
+        let password_hash = Pbkdf2
+            .hash_password(req_in.password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
 
         let res = col
             .insert_one(
                 Credentials {
                     username: req_in.username.clone(),
-                    password: req_in.password.clone(),
+                    password: password_hash.clone(),
                 },
                 None,
             )
@@ -52,7 +60,7 @@ impl Auth for AuthService {
         Ok(Response::new(reply))
     }
 
-    async fn login(
+    async fn verify(
         &self,
         request: tonic::Request<auth::Credentials>,
     ) -> Result<Response<auth::Token>, Status> {
@@ -69,11 +77,46 @@ impl Auth for AuthService {
             .unwrap()
             .unwrap();
 
-        let reply = auth::Token {
-            auth: format!("{}", res.username.clone()).into(),
-        };
+        let parsed_hash = PasswordHash::new(res.password.as_str()).unwrap();
+        if Pbkdf2
+            .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
+            .is_ok()
+        {
+            let reply = auth::Token {
+                auth: format!("{}", res.username.clone()).into(),
+            };
 
-        Ok(Response::new(reply))
+            return Ok(Response::new(reply));
+        }
+
+        return Err(Status::unauthenticated("guest"));
+    }
+
+    async fn login(
+        &self,
+        request: tonic::Request<auth::Credentials>,
+    ) -> Result<Response<auth::Token>, Status> {
+        println!("Got a request: {:?}", request);
+
+        let db = self.client.default_database().unwrap();
+        let col = db.collection::<Credentials>("users");
+
+        let req_in = request.into_inner().clone();
+
+        let res = col
+            .find_one(doc! {"username": req_in.username.clone()}, None)
+            .await
+            .unwrap();
+
+        if let Some(creds) = res {
+            let reply = auth::Token {
+                auth: format!("{}", creds.password.clone()).into(),
+            };
+
+            return Ok(Response::new(reply));
+        }
+
+        return Err(Status::unauthenticated("user not found"));
     }
 }
 
