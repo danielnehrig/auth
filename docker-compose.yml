@@ -8,7 +8,7 @@ services:
       - "50051:50051"
     environment:
       - PORT=9001
-      - MONGO_HOST=example-db
+      - MONGO_HOST=mongodb
       - MONGO_PORT=27017
     command: cargo watch -x run
     user: root

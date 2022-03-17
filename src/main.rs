@@ -171,7 +171,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         client: Arc::new(client),
     };
 
-    println!("Running on dope {}", addr);
+    println!("Running on {}", addr);
     Server::builder()
         .accept_http1(true)
         .add_service(config.enable(AuthServer::new(greeter)))
