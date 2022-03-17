@@ -143,13 +143,17 @@ impl Auth for AuthService {
 
         return Err(Status::unauthenticated("user not found"));
     }
+
+    async fn health(&self, _request: tonic::Request<()>) -> Result<Response<()>, Status> {
+        Ok(Response::new(()))
+    }
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mongo_port = env::var("MONGO_PORT").unwrap_or_else(|_| "27017".to_string());
     let mongo_host = env::var("MONGO_HOST").unwrap_or_else(|_| "localhost".to_string());
-    let addr = "127.0.0.1:50051".parse()?;
+    let addr = "[::0]:3000".parse()?;
 
     let config = tonic_web::config().allow_all_origins();
     // Parse a connection string into an options struct.

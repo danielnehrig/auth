@@ -27,3 +27,5 @@
 (Optional)
 - `docker-compose up` // with only the database comment out the app itself
 - `cargo watch -x run`
+
+Then the service should be reachable over 0.0.0.0:3000

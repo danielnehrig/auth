@@ -3,13 +3,13 @@ FROM rust:1.58 as builder
 RUN USER=root cargo new --bin auth
 WORKDIR /auth
 COPY ./Cargo.toml ./Cargo.toml
+RUN rustup component add rustfmt
 RUN cargo build --release
 RUN rm src/*.rs
 
 ADD . ./
 
 RUN rm ./target/release/deps/auth*
-RUN rustup component add rustfmt
 RUN cargo build --release
 
 

@@ -5,13 +5,14 @@ services:
       context: .
       dockerfile: Dockerfile_dev
     ports:
-      - "50051:50051"
+      - "3000:3000"
     environment:
       - PORT=9001
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
     command: cargo watch -x run
     user: root
+    tty: true
     volumes:
         - ./:/auth:rw,cached
         - ./target:/auth/target:rw,delegated

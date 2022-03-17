@@ -8,6 +8,4 @@ RUN rustup component add rustfmt \
 ADD . ./
 
 
-EXPOSE 50051
-
-VOLUME ["/usr/local/cargo"]
+EXPOSE 3000
