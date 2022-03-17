@@ -29,3 +29,8 @@
 - `cargo watch -x run`
 
 Then the service should be reachable over 0.0.0.0:3000
+
+## Test API Service Response Times
+
+- `brew install rtapi`
+- `rtapi --file endpoints.json --output results.pdf`
