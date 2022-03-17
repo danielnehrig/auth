@@ -4,12 +4,16 @@ pub mod auth {
 
 use auth::auth_server::{Auth, AuthServer};
 use futures::stream::StreamExt;
+use hmac::{Hmac, Mac};
+use jwt::SignWithKey;
 use mongodb::{bson::doc, options::ClientOptions};
 use pbkdf2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Pbkdf2,
 };
 use serde::{Deserialize, Serialize};
+use sha2::Sha256;
+use std::collections::BTreeMap;
 use std::sync::Arc;
 use tonic::{transport::Server, Response, Status};
 
@@ -42,6 +46,7 @@ impl Auth for AuthService {
             .unwrap()
             .to_string();
 
+        // @TODO no duplicate usernames
         let res = col
             .insert_one(
                 Credentials {
@@ -53,8 +58,15 @@ impl Auth for AuthService {
             .await
             .unwrap();
 
+        let key: Hmac<Sha256> = Hmac::new_from_slice(req_in.password.as_bytes()).unwrap();
+        let mut claims = BTreeMap::new();
+        claims.insert("name", req_in.username.as_str());
+        claims.insert("role", "user");
+
+        let token_str = claims.sign_with_key(&key).unwrap();
+
         let reply = auth::Token {
-            auth: format!("Hello {}!", req_in.username.clone()).into(),
+            auth: token_str.clone(),
         };
 
         Ok(Response::new(reply))
@@ -115,8 +127,14 @@ impl Auth for AuthService {
                 .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
                 .is_ok()
             {
+                let key: Hmac<Sha256> = Hmac::new_from_slice(creds.password.as_bytes()).unwrap();
+                let mut claims = BTreeMap::new();
+                claims.insert("name", creds.username.as_str());
+                claims.insert("role", "guest");
+
+                let token_str = claims.sign_with_key(&key).unwrap();
                 let reply = auth::Token {
-                    auth: format!("{}", creds.password.clone()).into(),
+                    auth: token_str.clone(),
                 };
 
                 return Ok(Response::new(reply));
