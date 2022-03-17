@@ -1,0 +1,13 @@
+FROM rust:1.58 as builder
+
+RUN USER=root cargo new --bin auth
+WORKDIR /auth
+RUN rustup component add rustfmt \
+    && cargo install cargo-watch
+
+ADD . ./
+
+
+EXPOSE 50051
+
+VOLUME ["/usr/local/cargo"]

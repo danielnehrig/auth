@@ -1,19 +1,29 @@
 version: '3'
 services:
   rust-api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile_dev
     ports:
       - "50051:50051"
-    depends_on:
-      - example-db
     environment:
       - PORT=9001
       - MONGO_HOST=example-db
       - MONGO_PORT=27017
+    command: cargo watch -x run
+    user: root
+    volumes:
+        - ./:/auth:rw,cached
+        - ./target:/auth/target:rw,delegated
+        - registry:/root/.cargo/registry
+    links:
+        - mongodb
+    depends_on: 
+        - mongodb
     networks:
       - default
 
-  example-db:
+  mongodb:
     image: mongo
     ports:
       - "27017:27017"
@@ -28,3 +38,4 @@ networks:
 
 volumes:
   example-db:
+  registry:

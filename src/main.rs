@@ -13,6 +13,7 @@ use scrypt::{
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
 use std::collections::BTreeMap;
+use std::env;
 use std::sync::Arc;
 use tonic::{transport::Server, Response, Status};
 
@@ -146,11 +147,18 @@ impl Auth for AuthService {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let mongo_port = env::var("MONGO_PORT").unwrap_or_else(|_| "27017".to_string());
+    let mongo_host = env::var("MONGO_HOST").unwrap_or_else(|_| "localhost".to_string());
     let addr = "127.0.0.1:50051".parse()?;
 
     let config = tonic_web::config().allow_all_origins();
     // Parse a connection string into an options struct.
-    let mut client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
+    let mut client_options = ClientOptions::parse(format!(
+        "mongodb://{}:{}",
+        mongo_host.clone(),
+        mongo_port.clone()
+    ))
+    .await?;
 
     // Manually set an option.
     client_options.default_database = Some("auth".to_string());
@@ -163,12 +171,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         client: Arc::new(client),
     };
 
+    println!("Running on dope {}", addr);
     Server::builder()
         .accept_http1(true)
         .add_service(config.enable(AuthServer::new(greeter)))
         .serve(addr)
         .await?;
 
-    println!("Running on {}", addr);
     Ok(())
 }
