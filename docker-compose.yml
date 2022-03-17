@@ -1,17 +1,17 @@
 version: '3'
 services:
-  #  rust-api:
-    #  build: .
-    #  ports:
-      #  - "9001:9001"
-    #  depends_on:
-      #  - example-db
-    #  environment:
-      #  - PORT=9001
-      #  - MONGO_HOST=example-db
-      #  - MONGO_PORT=27017
-    #  networks:
-      #  - default
+  rust-api:
+    build: .
+    ports:
+      - "50051:50051"
+    depends_on:
+      - example-db
+    environment:
+      - PORT=9001
+      - MONGO_HOST=example-db
+      - MONGO_PORT=27017
+    networks:
+      - default
 
   example-db:
     image: mongo

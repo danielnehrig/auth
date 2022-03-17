@@ -3,14 +3,9 @@ pub mod auth {
 }
 
 use auth::auth_server::{Auth, AuthServer};
-// use futures::stream::StreamExt;
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use mongodb::{bson::doc, options::ClientOptions};
-// use pbkdf2::{
-// password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-// Pbkdf2,
-// };
 use scrypt::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Scrypt,
@@ -43,10 +38,6 @@ impl Auth for AuthService {
 
         let req_in = request.into_inner().clone();
         let salt = SaltString::generate(&mut OsRng);
-        // let password_hash = Pbkdf2
-        // .hash_password(req_in.password.as_bytes(), &salt)
-        // .unwrap()
-        // .to_string();
 
         let password_hash = Scrypt
             .hash_password(req_in.password.as_bytes(), &salt)
@@ -54,7 +45,7 @@ impl Auth for AuthService {
             .to_string();
 
         // @TODO no duplicate usernames
-        let res = col
+        let _res = col
             .insert_one(
                 Credentials {
                     username: req_in.username.clone(),
