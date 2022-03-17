@@ -34,8 +34,6 @@ impl Auth for AuthService {
         &self,
         request: tonic::Request<auth::Credentials>,
     ) -> Result<Response<auth::Token>, Status> {
-        println!("Got a request: {:?}", request);
-
         let db = self.client.default_database().unwrap();
         let col = db.collection::<Credentials>("users");
 
@@ -76,8 +74,6 @@ impl Auth for AuthService {
         &self,
         request: tonic::Request<auth::Credentials>,
     ) -> Result<Response<auth::Token>, Status> {
-        println!("Got a request: {:?}", request);
-
         let db = self.client.default_database().unwrap();
         let col = db.collection::<Credentials>("users");
 
@@ -108,8 +104,6 @@ impl Auth for AuthService {
         &self,
         request: tonic::Request<auth::Credentials>,
     ) -> Result<Response<auth::Token>, Status> {
-        println!("Got a request: {:?}", request);
-
         let db = self.client.default_database().unwrap();
         let col = db.collection::<Credentials>("users");
 
@@ -157,7 +151,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Manually set an option.
     client_options.default_database = Some("auth".to_string());
-    client_options.app_name = Some("My App".to_string());
+    client_options.app_name = Some("Authentication Service".to_string());
 
     // Get a handle to the deployment.
     let client = mongodb::Client::with_options(client_options)?;
