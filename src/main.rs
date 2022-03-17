@@ -3,13 +3,17 @@ pub mod auth {
 }
 
 use auth::auth_server::{Auth, AuthServer};
-use futures::stream::StreamExt;
+// use futures::stream::StreamExt;
 use hmac::{Hmac, Mac};
 use jwt::SignWithKey;
 use mongodb::{bson::doc, options::ClientOptions};
-use pbkdf2::{
+// use pbkdf2::{
+// password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
+// Pbkdf2,
+// };
+use scrypt::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
-    Pbkdf2,
+    Scrypt,
 };
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -39,7 +43,12 @@ impl Auth for AuthService {
 
         let req_in = request.into_inner().clone();
         let salt = SaltString::generate(&mut OsRng);
-        let password_hash = Pbkdf2
+        // let password_hash = Pbkdf2
+        // .hash_password(req_in.password.as_bytes(), &salt)
+        // .unwrap()
+        // .to_string();
+
+        let password_hash = Scrypt
             .hash_password(req_in.password.as_bytes(), &salt)
             .unwrap()
             .to_string();
@@ -86,7 +95,7 @@ impl Auth for AuthService {
 
         if let Some(creds) = res {
             let parsed_hash = PasswordHash::new(creds.password.as_str()).unwrap();
-            if Pbkdf2
+            if Scrypt
                 .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
                 .is_ok()
             {
@@ -120,7 +129,7 @@ impl Auth for AuthService {
         if let Some(creds) = res {
             let parsed_hash = PasswordHash::new(creds.password.as_str()).unwrap();
 
-            if Pbkdf2
+            if Scrypt
                 .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
                 .is_ok()
             {
