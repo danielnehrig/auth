@@ -82,19 +82,22 @@ impl Auth for AuthService {
         let res = col
             .find_one(doc! {"username": req_in.username.clone()}, None)
             .await
-            .unwrap()
             .unwrap();
 
-        let parsed_hash = PasswordHash::new(res.password.as_str()).unwrap();
-        if Pbkdf2
-            .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
-            .is_ok()
-        {
-            let reply = auth::Token {
-                auth: format!("{}", res.username.clone()).into(),
-            };
+        if let Some(creds) = res {
+            let parsed_hash = PasswordHash::new(creds.password.as_str()).unwrap();
+            if Pbkdf2
+                .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
+                .is_ok()
+            {
+                let reply = auth::Token {
+                    auth: format!("{}", creds.username.clone()).into(),
+                };
 
-            return Ok(Response::new(reply));
+                return Ok(Response::new(reply));
+            }
+
+            return Err(Status::unauthenticated("not found"));
         }
 
         return Err(Status::unauthenticated("guest"));
