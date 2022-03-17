@@ -1,0 +1,59 @@
+[
+  {
+    "target": {
+      "url": "http://46.101.201.233:3000/auth.Auth/Login",
+      "method": "POST",
+      "body": "AAAAAA4KBUhlbGxvEgVIZWxsbw==",
+      "header": {
+        "Content-Type": [
+          "application/grpc-web-text+proto"
+        ]
+      }
+    },
+    "query_parameters": {
+      "threads": 2,
+      "max_threads": 2,
+      "connections": 10,
+      "duration": "10s",
+      "request_rate": 500
+    }
+  },
+  {
+    "target": {
+      "url": "http://46.101.201.233:3000/auth.Auth/Login",
+      "method": "POST",
+      "body": "AAAAAA4KBUhlbGxvEgVIZWxsbw==",
+      "header": {
+        "Content-Type": [
+          "application/grpc-web-text+proto"
+        ]
+      }
+    },
+    "query_parameters": {
+      "threads": 4,
+      "max_threads": 4,
+      "connections": 15,
+      "duration": "20s",
+      "request_rate": 500
+    }
+  },
+  {
+    "target": {
+      "url": "http://46.101.201.233:3000/auth.Auth/Register",
+      "method": "POST",
+      "body": "AAAAAA4KBUhlbGxvEgVIZWxsbw==",
+      "header": {
+        "Content-Type": [
+          "application/grpc-web-text+proto"
+        ]
+      }
+    },
+    "query_parameters": {
+      "threads": 2,
+      "max_threads": 2,
+      "connections": 10,
+      "duration": "10s",
+      "request_rate": 500
+    }
+  }
+]
