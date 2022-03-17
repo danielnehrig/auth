@@ -109,11 +109,20 @@ impl Auth for AuthService {
             .unwrap();
 
         if let Some(creds) = res {
-            let reply = auth::Token {
-                auth: format!("{}", creds.password.clone()).into(),
-            };
+            let parsed_hash = PasswordHash::new(creds.password.as_str()).unwrap();
 
-            return Ok(Response::new(reply));
+            if Pbkdf2
+                .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
+                .is_ok()
+            {
+                let reply = auth::Token {
+                    auth: format!("{}", creds.password.clone()).into(),
+                };
+
+                return Ok(Response::new(reply));
+            }
+
+            return Err(Status::unauthenticated("invalid password"));
         }
 
         return Err(Status::unauthenticated("user not found"));
