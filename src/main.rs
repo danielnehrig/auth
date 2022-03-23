@@ -41,38 +41,46 @@ impl Auth for AuthService {
         let req_in = request.into_inner().clone();
         let salt = SaltString::generate(&mut OsRng);
 
-        let password_hash = Scrypt
-            .hash_password(req_in.password.as_bytes(), &salt)
-            .unwrap()
-            .to_string();
-
-        // @TODO no duplicate usernames
-        let _res = col
-            .insert_one(
-                Credentials {
-                    username: req_in.username.clone(),
-                    password: password_hash.clone(),
-                },
-                None,
-            )
+        let result = col
+            .find_one(doc! {"username": req_in.username.clone()}, None)
             .await
             .unwrap();
 
-        let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
-        let mut claims = BTreeMap::new();
-        let exp = Utc::now() + chrono::Duration::days(2);
-        let claim_exp = exp.to_string().clone();
-        claims.insert("name", req_in.username.as_str());
-        claims.insert("expieres", claim_exp.as_str());
-        claims.insert("role", "user");
+        match result {
+            Some(_) => Err(Status::already_exists("user already registered")),
+            None => {
+                let password_hash = Scrypt
+                    .hash_password(req_in.password.as_bytes(), &salt)
+                    .unwrap()
+                    .to_string();
 
-        let token_str = claims.sign_with_key(&key).unwrap();
+                col.insert_one(
+                    Credentials {
+                        username: req_in.username.clone(),
+                        password: password_hash.clone(),
+                    },
+                    None,
+                )
+                .await
+                .unwrap();
 
-        let reply = auth::Token {
-            auth: token_str.clone(),
-        };
+                let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
+                let mut claims = BTreeMap::new();
+                let exp = Utc::now() + chrono::Duration::days(2);
+                let claim_exp = exp.to_string().clone();
+                claims.insert("name", req_in.username.as_str());
+                claims.insert("expieres", claim_exp.as_str());
+                claims.insert("role", "user");
 
-        Ok(Response::new(reply))
+                let token_str = claims.sign_with_key(&key).unwrap();
+
+                let reply = auth::Token {
+                    auth: token_str.clone(),
+                };
+
+                return Ok(Response::new(reply));
+            }
+        }
     }
 
     async fn refresh(
