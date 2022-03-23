@@ -27,7 +27,7 @@ service Auth {
 
   rpc Login(Credentials) returns (Token);
 
-  rpc Verify(Credentials) returns (Token);
+  rpc Verify(Token) returns (Token);
 
   rpc Health(google.protobuf.Empty) returns (google.protobuf.Empty);
 }

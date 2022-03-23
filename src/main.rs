@@ -3,8 +3,9 @@ pub mod auth {
 }
 
 use auth::auth_server::{Auth, AuthServer};
+use chrono::Utc;
 use hmac::{Hmac, Mac};
-use jwt::SignWithKey;
+use jwt::{SignWithKey, VerifyWithKey};
 use mongodb::{bson::doc, options::ClientOptions};
 use scrypt::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
@@ -57,9 +58,12 @@ impl Auth for AuthService {
             .await
             .unwrap();
 
-        let key: Hmac<Sha256> = Hmac::new_from_slice(req_in.password.as_bytes()).unwrap();
+        let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
         let mut claims = BTreeMap::new();
+        let exp = Utc::now() + chrono::Duration::days(2);
+        let claim_exp = exp.to_string().clone();
         claims.insert("name", req_in.username.as_str());
+        claims.insert("expieres", claim_exp.as_str());
         claims.insert("role", "user");
 
         let token_str = claims.sign_with_key(&key).unwrap();
@@ -73,35 +77,22 @@ impl Auth for AuthService {
 
     async fn verify(
         &self,
-        request: tonic::Request<auth::Credentials>,
+        request: tonic::Request<auth::Token>,
     ) -> Result<Response<auth::Token>, Status> {
-        let db = self.client.default_database().unwrap();
-        let col = db.collection::<Credentials>("users");
-
-        let req_in = request.into_inner().clone();
-
-        let res = col
-            .find_one(doc! {"username": req_in.username.clone()}, None)
-            .await
-            .unwrap();
-
-        if let Some(creds) = res {
-            let parsed_hash = PasswordHash::new(creds.password.as_str()).unwrap();
-            if Scrypt
-                .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
-                .is_ok()
-            {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(b"234234234234").unwrap();
+        let token = request.into_inner().auth;
+        let sign_res: Result<BTreeMap<String, String>, _> =
+            token.clone().as_str().verify_with_key(&key);
+        let res = match sign_res {
+            Ok(data) => {
                 let reply = auth::Token {
-                    auth: format!("{}", creds.username.clone()).into(),
+                    auth: format!("{}", token.clone()).into(),
                 };
-
-                return Ok(Response::new(reply));
+                Ok(Response::new(reply))
             }
-
-            return Err(Status::unauthenticated("not found"));
-        }
-
-        return Err(Status::unauthenticated("guest"));
+            Err(_) => Err(Status::unauthenticated("invalid token")),
+        };
+        res
     }
 
     async fn login(
@@ -128,7 +119,11 @@ impl Auth for AuthService {
                 let key: Hmac<Sha256> = Hmac::new_from_slice(creds.password.as_bytes()).unwrap();
                 let mut claims = BTreeMap::new();
                 claims.insert("name", creds.username.as_str());
-                claims.insert("role", "guest");
+                let exp = Utc::now() + chrono::Duration::days(2);
+                let claim_exp = exp.to_string().clone();
+                claims.insert("name", req_in.username.as_str());
+                claims.insert("role", "user");
+                claims.insert("expieres", claim_exp.as_str());
 
                 let token_str = claims.sign_with_key(&key).unwrap();
                 let reply = auth::Token {
