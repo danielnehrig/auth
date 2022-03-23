@@ -75,7 +75,7 @@ impl Auth for AuthService {
         Ok(Response::new(reply))
     }
 
-    async fn verify(
+    async fn refresh(
         &self,
         request: tonic::Request<auth::Token>,
     ) -> Result<Response<auth::Token>, Status> {
@@ -85,6 +85,33 @@ impl Auth for AuthService {
             token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
             Ok(data) => {
+                let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
+                let mut claims = BTreeMap::new();
+                let exp = Utc::now() + chrono::Duration::days(2);
+                let claim_exp = exp.to_string().clone();
+                claims.insert("name", data["name"].as_str());
+                claims.insert("expieres", claim_exp.as_str());
+                claims.insert("role", "user");
+
+                let token_str = claims.sign_with_key(&key).unwrap();
+                let reply = auth::Token { auth: token_str };
+                Ok(Response::new(reply))
+            }
+            Err(_) => Err(Status::unauthenticated("invalid token")),
+        };
+        res
+    }
+
+    async fn verify(
+        &self,
+        request: tonic::Request<auth::Token>,
+    ) -> Result<Response<auth::Token>, Status> {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(b"234234234234").unwrap();
+        let token = request.into_inner().auth;
+        let sign_res: Result<BTreeMap<String, String>, _> =
+            token.clone().as_str().verify_with_key(&key);
+        let res = match sign_res {
+            Ok(_) => {
                 let reply = auth::Token {
                     auth: format!("{}", token.clone()).into(),
                 };
