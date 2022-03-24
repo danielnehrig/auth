@@ -17,9 +17,9 @@ use scrypt::{
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::Sha256;
+use std::cell::RefCell;
 use std::env;
 use std::sync::Arc;
-use std::{cell::RefCell};
 use tonic::{transport::Server, Response, Status};
 
 #[derive(Debug)]
@@ -83,7 +83,7 @@ impl Auth for AuthService {
                 let mut claims = Claims::new(reg);
                 let exp = Utc::now() + chrono::Duration::days(2);
                 let claim_exp = exp.timestamp() as u64;
-                let id_parse = res.inserted_id.to_string();
+                let id_parse = res.inserted_id.as_object_id().unwrap().to_string();
                 claims.registered.subject = Some(id_parse.clone());
                 claims
                     .private
