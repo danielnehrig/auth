@@ -1,4 +1,4 @@
-FROM rust:1.58 as builder
+FROM rustlang/rust:nightly-slim as builder
 
 RUN USER=root cargo new --bin auth
 WORKDIR /auth

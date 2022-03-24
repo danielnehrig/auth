@@ -1,0 +1,21 @@
+[
+  {
+    "target": {
+      "url": "http://127.0.0.1:3000/auth.Auth/Login",
+      "method": "POST",
+      "body": "AAAAAA4KBUhlbGxvEgVIZWxsbw==",
+      "header": {
+        "Content-Type": [
+          "application/grpc-web-text+proto"
+        ]
+      }
+    },
+    "query_parameters": {
+      "threads": 4,
+      "max_threads": 4,
+      "connections": 15,
+      "duration": "20s",
+      "request_rate": 500
+    }
+  }
+]

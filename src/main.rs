@@ -29,7 +29,6 @@ struct AuthService {
 
 #[derive(Clone, Deserialize, Serialize)]
 struct Credentials {
-    #[serde(skip_deserializing)]
     #[serde(rename = "_id")]
     id: bson::oid::ObjectId,
     username: String,
@@ -114,14 +113,20 @@ impl Auth for AuthService {
         let sign_res: Result<RefCell<Claims>, _> = token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
             Ok(claims) => {
-                let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
-                let exp = Utc::now() + chrono::Duration::days(2);
-                let claim_exp = exp.timestamp() as u64;
-                claims.borrow_mut().registered.expiration = Some(claim_exp);
+                if claims.borrow().registered.expiration.unwrap()
+                    > Utc::now().timestamp().try_into().unwrap()
+                {
+                    let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
+                    let exp = Utc::now() + chrono::Duration::days(2);
+                    let claim_exp = exp.timestamp() as u64;
+                    claims.borrow_mut().registered.expiration = Some(claim_exp);
 
-                let token_str = claims.sign_with_key(&key).unwrap();
-                let reply = auth::Token { auth: token_str };
-                Ok(Response::new(reply))
+                    let token_str = claims.sign_with_key(&key).unwrap();
+                    let reply = auth::Token { auth: token_str };
+                    return Ok(Response::new(reply));
+                }
+
+                return Err(Status::unauthenticated("token expired"));
             }
             Err(_) => Err(Status::unauthenticated("invalid token")),
         };
@@ -136,11 +141,18 @@ impl Auth for AuthService {
         let token = request.into_inner().auth;
         let sign_res: Result<Claims, _> = token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
-            Ok(_) => {
-                let reply = auth::Token {
-                    auth: format!("{}", token.clone()).into(),
-                };
-                Ok(Response::new(reply))
+            Ok(claims) => {
+                if claims.registered.expiration.unwrap()
+                    > Utc::now().timestamp().try_into().unwrap()
+                {
+                    let reply = auth::Token {
+                        auth: token.clone(),
+                    };
+
+                    return Ok(Response::new(reply));
+                }
+
+                return Err(Status::unauthenticated("token expired"));
             }
             Err(_) => Err(Status::unauthenticated("invalid token")),
         };

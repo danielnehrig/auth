@@ -10,7 +10,7 @@ services:
       - PORT=9001
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
-    command: cargo watch -x run
+    command: cargo watch -x "run"
     user: root
     tty: true
     volumes:
