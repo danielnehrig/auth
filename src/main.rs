@@ -80,7 +80,8 @@ impl Auth for AuthService {
                 let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
                 let reg = RegisteredClaims::default();
                 let mut claims = Claims::new(reg);
-                let exp = Utc::now() + chrono::Duration::days(2);
+                let now = Utc::now();
+                let exp = now.clone() + chrono::Duration::days(2);
                 let claim_exp = exp.timestamp() as u64;
                 let id_parse = res.inserted_id.as_object_id().unwrap().to_string();
                 claims.registered.subject = Some(id_parse.clone());
@@ -92,6 +93,7 @@ impl Auth for AuthService {
                     .private
                     .insert("role".into(), Value::String("user".to_string()));
                 claims.registered.issuer = Some("dnehrig.com".to_string());
+                claims.registered.issued_at = Some(now.timestamp() as u64);
 
                 let token_str = claims.sign_with_key(&key).unwrap();
 
@@ -117,9 +119,11 @@ impl Auth for AuthService {
                     > Utc::now().timestamp().try_into().unwrap()
                 {
                     let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
-                    let exp = Utc::now() + chrono::Duration::days(2);
+                    let now = Utc::now();
+                    let exp = now.clone() + chrono::Duration::days(2);
                     let claim_exp = exp.timestamp() as u64;
                     claims.borrow_mut().registered.expiration = Some(claim_exp);
+                    claims.borrow_mut().registered.issued_at = Some(now.timestamp() as u64);
 
                     let token_str = claims.sign_with_key(&key).unwrap();
                     let reply = auth::Token { auth: token_str };
@@ -159,6 +163,32 @@ impl Auth for AuthService {
         res
     }
 
+    async fn guest(&self, _: tonic::Request<()>) -> Result<Response<auth::Token>, Status> {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
+        let reg_claims = RegisteredClaims::default();
+        let mut claims = Claims::new(reg_claims);
+        let now = Utc::now();
+        let exp = now.clone() + chrono::Duration::days(2);
+        let claim_exp = exp.timestamp() as u64;
+        claims.registered.subject = Some("GUEST".to_string());
+        claims
+            .private
+            .insert("name".into(), Value::String("GUEST".to_string()));
+        claims.registered.expiration = Some(claim_exp);
+        claims
+            .private
+            .insert("role".into(), Value::String("GUEST".to_string()));
+        claims.registered.issuer = Some("dnehrig.com".to_string());
+        claims.registered.issued_at = Some(now.timestamp() as u64);
+
+        let token_str = claims.sign_with_key(&key).unwrap();
+        let reply = auth::Token {
+            auth: token_str.clone(),
+        };
+
+        return Ok(Response::new(reply));
+    }
+
     async fn login(
         &self,
         request: tonic::Request<auth::Credentials>,
@@ -183,7 +213,8 @@ impl Auth for AuthService {
                 let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
                 let reg_claims = RegisteredClaims::default();
                 let mut claims = Claims::new(reg_claims);
-                let exp = Utc::now() + chrono::Duration::days(2);
+                let now = Utc::now();
+                let exp = now.clone() + chrono::Duration::days(2);
                 let claim_exp = exp.timestamp() as u64;
                 let id_parse = creds.id.to_string();
                 claims.registered.subject = Some(id_parse.clone());
@@ -195,6 +226,7 @@ impl Auth for AuthService {
                     .private
                     .insert("role".into(), Value::String("user".to_string()));
                 claims.registered.issuer = Some("dnehrig.com".to_string());
+                claims.registered.issued_at = Some(now.timestamp() as u64);
 
                 let token_str = claims.sign_with_key(&key).unwrap();
                 let reply = auth::Token {

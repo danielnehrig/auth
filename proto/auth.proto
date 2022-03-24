@@ -31,6 +31,8 @@ service Auth {
 
   rpc Refresh(Token) returns (Token);
 
+  rpc Guest(google.protobuf.Empty) returns (Token);
+
   rpc Health(google.protobuf.Empty) returns (google.protobuf.Empty);
 }
 
