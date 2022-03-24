@@ -5,17 +5,21 @@ pub mod auth {
 use auth::auth_server::{Auth, AuthServer};
 use chrono::Utc;
 use hmac::{Hmac, Mac};
-use jwt::{SignWithKey, VerifyWithKey};
-use mongodb::{bson::doc, options::ClientOptions};
+use jwt::{claims::Claims, RegisteredClaims, SignWithKey, VerifyWithKey};
+use mongodb::{
+    bson::{self, doc},
+    options::ClientOptions,
+};
 use scrypt::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Scrypt,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use sha2::Sha256;
-use std::collections::BTreeMap;
 use std::env;
 use std::sync::Arc;
+use std::{cell::RefCell};
 use tonic::{transport::Server, Response, Status};
 
 #[derive(Debug)]
@@ -25,6 +29,9 @@ struct AuthService {
 
 #[derive(Clone, Deserialize, Serialize)]
 struct Credentials {
+    #[serde(skip_deserializing)]
+    #[serde(rename = "_id")]
+    id: bson::oid::ObjectId,
     username: String,
     password: String,
 }
@@ -59,23 +66,33 @@ impl Auth for AuthService {
                     .unwrap()
                     .to_string();
 
-                col.insert_one(
-                    Credentials {
-                        username: req_in.username.clone(),
-                        password: password_hash.clone(),
-                    },
-                    None,
-                )
-                .await
-                .unwrap();
+                let res = col
+                    .insert_one(
+                        Credentials {
+                            username: req_in.username.clone(),
+                            password: password_hash.clone(),
+                            id: bson::oid::ObjectId::new(),
+                        },
+                        None,
+                    )
+                    .await
+                    .unwrap();
 
                 let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
-                let mut claims = BTreeMap::new();
+                let reg = RegisteredClaims::default();
+                let mut claims = Claims::new(reg);
                 let exp = Utc::now() + chrono::Duration::days(2);
-                let claim_exp = exp.to_string().clone();
-                claims.insert("name", req_in.username.as_str());
-                claims.insert("expieres", claim_exp.as_str());
-                claims.insert("role", "user");
+                let claim_exp = exp.timestamp() as u64;
+                let id_parse = res.inserted_id.to_string();
+                claims.registered.subject = Some(id_parse.clone());
+                claims
+                    .private
+                    .insert("name".into(), Value::String(req_in.username));
+                claims.registered.expiration = Some(claim_exp);
+                claims
+                    .private
+                    .insert("role".into(), Value::String("user".to_string()));
+                claims.registered.issuer = Some("dnehrig.com".to_string());
 
                 let token_str = claims.sign_with_key(&key).unwrap();
 
@@ -94,17 +111,13 @@ impl Auth for AuthService {
     ) -> Result<Response<auth::Token>, Status> {
         let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
         let token = request.into_inner().auth;
-        let sign_res: Result<BTreeMap<String, String>, _> =
-            token.clone().as_str().verify_with_key(&key);
+        let sign_res: Result<RefCell<Claims>, _> = token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
-            Ok(data) => {
+            Ok(claims) => {
                 let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
-                let mut claims = BTreeMap::new();
                 let exp = Utc::now() + chrono::Duration::days(2);
-                let claim_exp = exp.to_string().clone();
-                claims.insert("name", data["name"].as_str());
-                claims.insert("expieres", claim_exp.as_str());
-                claims.insert("role", "user");
+                let claim_exp = exp.timestamp() as u64;
+                claims.borrow_mut().registered.expiration = Some(claim_exp);
 
                 let token_str = claims.sign_with_key(&key).unwrap();
                 let reply = auth::Token { auth: token_str };
@@ -121,8 +134,7 @@ impl Auth for AuthService {
     ) -> Result<Response<auth::Token>, Status> {
         let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
         let token = request.into_inner().auth;
-        let sign_res: Result<BTreeMap<String, String>, _> =
-            token.clone().as_str().verify_with_key(&key);
+        let sign_res: Result<Claims, _> = token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
             Ok(_) => {
                 let reply = auth::Token {
@@ -157,13 +169,20 @@ impl Auth for AuthService {
                 .is_ok()
             {
                 let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
-                let mut claims = BTreeMap::new();
-                claims.insert("name", creds.username.as_str());
+                let reg_claims = RegisteredClaims::default();
+                let mut claims = Claims::new(reg_claims);
                 let exp = Utc::now() + chrono::Duration::days(2);
-                let claim_exp = exp.to_string().clone();
-                claims.insert("name", req_in.username.as_str());
-                claims.insert("role", "user");
-                claims.insert("expieres", claim_exp.as_str());
+                let claim_exp = exp.timestamp() as u64;
+                let id_parse = creds.id.to_string();
+                claims.registered.subject = Some(id_parse.clone());
+                claims
+                    .private
+                    .insert("name".into(), Value::String(req_in.username));
+                claims.registered.expiration = Some(claim_exp);
+                claims
+                    .private
+                    .insert("role".into(), Value::String("user".to_string()));
+                claims.registered.issuer = Some("dnehrig.com".to_string());
 
                 let token_str = claims.sign_with_key(&key).unwrap();
                 let reply = auth::Token {
