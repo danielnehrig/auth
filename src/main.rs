@@ -242,6 +242,23 @@ impl Auth for AuthService {
         return Err(Status::unauthenticated("user not found"));
     }
 
+    async fn delete(
+        &self,
+        request: tonic::Request<auth::DeleteUser>,
+    ) -> Result<Response<()>, Status> {
+        let db = self.client.default_database().unwrap();
+        let col = db.collection::<Credentials>("users");
+        let data = request.into_inner();
+        let result = col
+            .delete_one(doc! {"username": data.username.clone()}, None)
+            .await;
+
+        match result {
+            Ok(_) => Ok(Response::new(())),
+            Err(_) => Err(Status::not_found("user not found")),
+        }
+    }
+
     async fn health(&self, _request: tonic::Request<()>) -> Result<Response<()>, Status> {
         Ok(Response::new(()))
     }

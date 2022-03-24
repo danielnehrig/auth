@@ -33,7 +33,13 @@ service Auth {
 
   rpc Guest(google.protobuf.Empty) returns (Token);
 
+  rpc Delete(DeleteUser) returns (google.protobuf.Empty);
+
   rpc Health(google.protobuf.Empty) returns (google.protobuf.Empty);
+}
+
+message DeleteUser {
+  string username = 1;
 }
 
 message Credentials {
