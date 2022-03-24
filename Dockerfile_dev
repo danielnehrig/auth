@@ -1,11 +1,14 @@
 FROM rustlang/rust:nightly-slim as builder
+RUN useradd -ms /bin/bash dashie
 
-RUN USER=root cargo new --bin auth
 WORKDIR /auth
 RUN rustup component add rustfmt \
     && cargo install cargo-watch
 
-ADD . ./
-
+ADD --chown=dashie:dashie . ./
+RUN chown -R dashie:staff /auth
+RUN chown -R dashie:staff /usr/local/cargo
+RUN chmod 755 /auth
+USER dashie
 
 EXPOSE 3000

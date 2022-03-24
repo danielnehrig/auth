@@ -11,11 +11,9 @@ services:
       - MONGO_HOST=mongodb
       - MONGO_PORT=27017
     command: cargo watch -x "run"
-    user: root
-    tty: true
+    user: ${CURRENT_UID}
     volumes:
-        - ./:/auth:rw,cached
-        - ./target:/auth/target:rw,delegated
+        - .:/auth
         - registry:/root/.cargo/registry
     links:
         - mongodb
@@ -40,3 +38,4 @@ networks:
 volumes:
   example-db:
   registry:
+    driver: local
