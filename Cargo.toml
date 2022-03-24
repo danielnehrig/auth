@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 tonic = "0.6"
 tonic-web = "0.2"
+lazy_static = "1"
 chrono = "0.4"
 jwt = "0.16"
 scrypt = "0.10.0"

@@ -28,6 +28,11 @@ struct Credentials {
     username: String,
     password: String,
 }
+use lazy_static::lazy_static;
+
+lazy_static! {
+    static ref JWT_SIGN_KEY: &'static str = "someValue1232$214124(aa$asd";
+}
 
 #[tonic::async_trait]
 impl Auth for AuthService {
@@ -64,7 +69,7 @@ impl Auth for AuthService {
                 .await
                 .unwrap();
 
-                let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
+                let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
                 let mut claims = BTreeMap::new();
                 let exp = Utc::now() + chrono::Duration::days(2);
                 let claim_exp = exp.to_string().clone();
@@ -87,13 +92,13 @@ impl Auth for AuthService {
         &self,
         request: tonic::Request<auth::Token>,
     ) -> Result<Response<auth::Token>, Status> {
-        let key: Hmac<Sha256> = Hmac::new_from_slice(b"234234234234").unwrap();
+        let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
         let token = request.into_inner().auth;
         let sign_res: Result<BTreeMap<String, String>, _> =
             token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
             Ok(data) => {
-                let key: Hmac<Sha256> = Hmac::new_from_slice("234234234234".as_bytes()).unwrap();
+                let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
                 let mut claims = BTreeMap::new();
                 let exp = Utc::now() + chrono::Duration::days(2);
                 let claim_exp = exp.to_string().clone();
@@ -114,7 +119,7 @@ impl Auth for AuthService {
         &self,
         request: tonic::Request<auth::Token>,
     ) -> Result<Response<auth::Token>, Status> {
-        let key: Hmac<Sha256> = Hmac::new_from_slice(b"234234234234").unwrap();
+        let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
         let token = request.into_inner().auth;
         let sign_res: Result<BTreeMap<String, String>, _> =
             token.clone().as_str().verify_with_key(&key);
@@ -151,7 +156,7 @@ impl Auth for AuthService {
                 .verify_password(req_in.password.clone().as_bytes(), &parsed_hash)
                 .is_ok()
             {
-                let key: Hmac<Sha256> = Hmac::new_from_slice(creds.password.as_bytes()).unwrap();
+                let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
                 let mut claims = BTreeMap::new();
                 claims.insert("name", creds.username.as_str());
                 let exp = Utc::now() + chrono::Duration::days(2);
