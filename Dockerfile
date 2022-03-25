@@ -29,7 +29,7 @@ RUN groupadd $APP_USER \
     && useradd -g $APP_USER $APP_USER \
     && mkdir -p ${APP}
 
-COPY --from=builder /app/target/release/app ${APP}/app
+COPY --from=builder /app/target/release/auth ${APP}/app
 
 RUN chown -R $APP_USER:$APP_USER ${APP}
 
