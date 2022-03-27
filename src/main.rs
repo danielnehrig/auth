@@ -33,6 +33,7 @@ struct Credentials {
     id: bson::oid::ObjectId,
     username: String,
     password: String,
+    role: Vec<String>,
 }
 use lazy_static::lazy_static;
 
@@ -70,6 +71,7 @@ impl Auth for AuthService {
                         Credentials {
                             username: req_in.username.clone(),
                             password: password_hash.clone(),
+                            role: vec!["user".to_string()],
                             id: bson::oid::ObjectId::new(),
                         },
                         None,
@@ -89,9 +91,10 @@ impl Auth for AuthService {
                     .private
                     .insert("name".into(), Value::String(req_in.username));
                 claims.registered.expiration = Some(claim_exp);
-                claims
-                    .private
-                    .insert("role".into(), Value::String("user".to_string()));
+                claims.private.insert(
+                    "role".into(),
+                    Value::Array(vec![Value::String("user".to_string())]),
+                );
                 claims.registered.issuer = Some("dnehrig.com".to_string());
                 claims.registered.issued_at = Some(now.timestamp() as u64);
 
@@ -180,7 +183,16 @@ impl Auth for AuthService {
                         username: String::from(
                             claims.private.get("name").unwrap().as_str().unwrap(),
                         ),
-                        role: String::from(claims.private.get("role").unwrap().as_str().unwrap()),
+                        role: claims
+                            .private
+                            .get("role")
+                            .unwrap()
+                            .as_array()
+                            .cloned()
+                            .unwrap()
+                            .into_iter()
+                            .map(|e| e.as_str().unwrap().to_string())
+                            .collect::<Vec<String>>(),
                         auth: token.clone(),
                     };
 
@@ -201,14 +213,15 @@ impl Auth for AuthService {
         let now = Utc::now();
         let exp = now.clone() + chrono::Duration::days(2);
         let claim_exp = exp.timestamp() as u64;
-        claims.registered.subject = Some("GUEST".to_string());
+        claims.registered.subject = Some("guest".to_string());
         claims
             .private
-            .insert("name".into(), Value::String("GUEST".to_string()));
+            .insert("name".into(), Value::String("guest".to_string()));
         claims.registered.expiration = Some(claim_exp);
-        claims
-            .private
-            .insert("role".into(), Value::String("GUEST".to_string()));
+        claims.private.insert(
+            "role".into(),
+            Value::Array(vec![Value::String("guest".to_string())]),
+        );
         claims.registered.issuer = Some("dnehrig.com".to_string());
         claims.registered.issued_at = Some(now.timestamp() as u64);
 
@@ -253,9 +266,16 @@ impl Auth for AuthService {
                     .private
                     .insert("name".into(), Value::String(req_in.username));
                 claims.registered.expiration = Some(claim_exp);
-                claims
-                    .private
-                    .insert("role".into(), Value::String("user".to_string()));
+                claims.private.insert(
+                    "role".into(),
+                    Value::Array(
+                        creds
+                            .role
+                            .into_iter()
+                            .map(|e| Value::String(e))
+                            .collect::<Vec<Value>>(),
+                    ),
+                );
                 claims.registered.issuer = Some("dnehrig.com".to_string());
                 claims.registered.issued_at = Some(now.timestamp() as u64);
 
