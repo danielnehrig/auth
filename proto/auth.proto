@@ -29,6 +29,8 @@ service Auth {
 
   rpc Verify(Token) returns (Token);
 
+  rpc Info(Token) returns (AccountInfo);
+
   rpc Refresh(Token) returns (Token);
 
   rpc Guest(google.protobuf.Empty) returns (Token);
@@ -40,6 +42,12 @@ service Auth {
 
 message DeleteUser {
   string username = 1;
+}
+
+message AccountInfo {
+  string id = 1;
+  string username = 2;
+  string role = 3;
 }
 
 message Credentials {

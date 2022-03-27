@@ -163,6 +163,34 @@ impl Auth for AuthService {
         res
     }
 
+    async fn info(
+        &self,
+        request: tonic::Request<auth::Token>,
+    ) -> Result<Response<auth::AccountInfo>, Status> {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
+        let token = request.into_inner().auth;
+        let sign_res: Result<Claims, _> = token.clone().as_str().verify_with_key(&key);
+        let res = match sign_res {
+            Ok(claims) => {
+                if claims.registered.expiration.unwrap()
+                    > Utc::now().timestamp().try_into().unwrap()
+                {
+                    let reply = auth::AccountInfo {
+                        id: claims.registered.subject.unwrap().clone(),
+                        username: claims.private.get("name").unwrap().to_string(),
+                        role: claims.private.get("role").unwrap().to_string(),
+                    };
+
+                    return Ok(Response::new(reply));
+                }
+
+                return Err(Status::unauthenticated("token expired"));
+            }
+            Err(_) => Err(Status::unauthenticated("invalid token")),
+        };
+        res
+    }
+
     async fn guest(&self, _: tonic::Request<()>) -> Result<Response<auth::Token>, Status> {
         let key: Hmac<Sha256> = Hmac::new_from_slice(JWT_SIGN_KEY.as_bytes()).unwrap();
         let reg_claims = RegisteredClaims::default();
