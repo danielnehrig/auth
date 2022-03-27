@@ -177,8 +177,10 @@ impl Auth for AuthService {
                 {
                     let reply = auth::AccountInfo {
                         id: claims.registered.subject.unwrap().clone(),
-                        username: claims.private.get("name").unwrap().to_string(),
-                        role: claims.private.get("role").unwrap().to_string(),
+                        username: String::from(
+                            claims.private.get("name").unwrap().as_str().unwrap(),
+                        ),
+                        role: String::from(claims.private.get("role").unwrap().as_str().unwrap()),
                         auth: token.clone(),
                     };
 
