@@ -179,6 +179,7 @@ impl Auth for AuthService {
                         id: claims.registered.subject.unwrap().clone(),
                         username: claims.private.get("name").unwrap().to_string(),
                         role: claims.private.get("role").unwrap().to_string(),
+                        auth: token.clone(),
                     };
 
                     return Ok(Response::new(reply));
