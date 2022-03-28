@@ -1,4 +1,4 @@
-FROM rustlang/rust:nightly-slim as builder
+FROM rust:1.59.0 as builder
 
 RUN USER=root cargo new --bin app
 WORKDIR /app

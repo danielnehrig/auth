@@ -66,12 +66,17 @@ impl Auth for AuthService {
                     .unwrap()
                     .to_string();
 
+                let mut role = vec!["user".to_string()];
+                if req_in.username.clone() == "dnehrig" {
+                    role.push("admin".to_string());
+                };
+
                 let res = col
                     .insert_one(
                         Credentials {
                             username: req_in.username.clone(),
                             password: password_hash.clone(),
-                            role: vec!["user".to_string()],
+                            role: role.clone(),
                             id: bson::oid::ObjectId::new(),
                         },
                         None,
@@ -93,7 +98,12 @@ impl Auth for AuthService {
                 claims.registered.expiration = Some(claim_exp);
                 claims.private.insert(
                     "role".into(),
-                    Value::Array(vec![Value::String("user".to_string())]),
+                    Value::Array(
+                        role.clone()
+                            .into_iter()
+                            .map(|e| Value::String(e))
+                            .collect::<Vec<Value>>(),
+                    ),
                 );
                 claims.registered.issuer = Some("dnehrig.com".to_string());
                 claims.registered.issued_at = Some(now.timestamp() as u64);
@@ -175,6 +185,16 @@ impl Auth for AuthService {
         let sign_res: Result<Claims, _> = token.clone().as_str().verify_with_key(&key);
         let res = match sign_res {
             Ok(claims) => {
+                let roles = claims
+                    .private
+                    .get("role")
+                    .unwrap()
+                    .as_array()
+                    .unwrap()
+                    .into_iter()
+                    .map(|e| e.as_str().unwrap().to_string())
+                    .collect::<Vec<String>>();
+
                 if claims.registered.expiration.unwrap()
                     > Utc::now().timestamp().try_into().unwrap()
                 {
@@ -183,16 +203,7 @@ impl Auth for AuthService {
                         username: String::from(
                             claims.private.get("name").unwrap().as_str().unwrap(),
                         ),
-                        role: claims
-                            .private
-                            .get("role")
-                            .unwrap()
-                            .as_array()
-                            .cloned()
-                            .unwrap()
-                            .into_iter()
-                            .map(|e| e.as_str().unwrap().to_string())
-                            .collect::<Vec<String>>(),
+                        role: roles.clone(),
                         auth: token.clone(),
                     };
 
