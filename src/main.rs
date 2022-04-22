@@ -4,8 +4,10 @@ pub mod auth {
 
 use auth::auth_server::{Auth, AuthServer};
 use chrono::Utc;
+use env_logger;
 use hmac::{Hmac, Mac};
 use jwt::{claims::Claims, RegisteredClaims, SignWithKey, VerifyWithKey};
+use log::{debug, error, info, log_enabled, Level};
 use mongodb::{
     bson::{self, doc},
     options::ClientOptions,
@@ -38,6 +40,7 @@ struct Credentials {
 use lazy_static::lazy_static;
 
 lazy_static! {
+    // @TODO - Replace with sig key priv
     static ref JWT_SIGN_KEY: &'static str = "someValue1232$214124(aa$asd";
 }
 
@@ -328,6 +331,7 @@ impl Auth for AuthService {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
     let mongo_port = env::var("MONGO_PORT").unwrap_or_else(|_| "27017".to_string());
     let mongo_host = env::var("MONGO_HOST").unwrap_or_else(|_| "localhost".to_string());
     let addr = "[::0]:3000".parse()?;
