@@ -7,7 +7,6 @@ use chrono::Utc;
 use env_logger;
 use hmac::{Hmac, Mac};
 use jwt::{claims::Claims, RegisteredClaims, SignWithKey, VerifyWithKey};
-use log::{debug, error, info, log_enabled, Level};
 use mongodb::{
     bson::{self, doc},
     options::ClientOptions,

@@ -1,8 +1,9 @@
-FROM rust:1.59.0 as builder
+FROM rustlang/rust:nightly-slim as builder
 
 RUN USER=root cargo new --bin app
 WORKDIR /app
 COPY ./Cargo.toml ./Cargo.toml
+RUN rustup default nightly
 RUN rustup component add rustfmt
 RUN cargo build --release
 RUN rm src/*.rs
