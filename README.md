@@ -3,6 +3,7 @@
 ## Overview
 
 **Stack**
+
 - Rust
 - GRPC Tonic http/2 and web http/1
 - Protobuf transport
@@ -11,10 +12,25 @@
 
 ## Setup and needed dependencies
 
-- `brew install bloomrpc`
+### Mac
+
+- `brew install bloomrpc` (for testing the API)
 - `brew install docker`
 - `brew install docker-compose`
 - `brew install rustup`
+
+### Linux (with pacman)
+
+- `pacman -S rustup docker docker-compose`
+- `yay -S bloomrpc-git`
+
+### Linux (with apt)
+
+- `apt-get install rustup docker docker-compose`
+- `install bloomrpc from git`
+
+### Generic stuff
+
 - `rustup default nightly`
 - `rustup +nightly component add rustfmt`
 - `cargo install cargo-watch`
