@@ -15,6 +15,7 @@ split-debuginfo = "unpacked"
 
 [dependencies]
 tonic = "0.6"
+failure = "0.1"
 env_logger = "0.9"
 log = "0.4"
 tonic-web = "0.2"
@@ -36,4 +37,5 @@ serde_json = "1.0"
 rand = "0.8"
 
 [build-dependencies]
+failure = "^0.1"
 tonic-build = "0.6"

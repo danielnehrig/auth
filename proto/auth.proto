@@ -17,6 +17,7 @@ syntax = "proto3";
 package auth;
 
 import "google/protobuf/empty.proto";
+import "google/api/annotations.proto";
 option java_multiple_files = true;
 option java_package = "io.grpc.auth";
 option java_outer_classname = "AuthProto";
