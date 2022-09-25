@@ -2,6 +2,12 @@ FROM rustlang/rust:nightly-slim as builder
 RUN useradd -ms /bin/bash dashie
 
 WORKDIR /app
+RUN apt-get -y update \
+    && apt-get -y install libssl-dev \
+    && apt-get -y install openssl \
+    && apt-get -y install curl \
+    && apt-get -y install protobuf-compiler \
+    && apt-get -y install pkg-config
 RUN rustup component add rustfmt \
     && cargo install cargo-watch
 
