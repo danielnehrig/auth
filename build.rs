@@ -1,4 +1,4 @@
-use failure::Error;
+use std::io::Error;
 
 fn main() -> Result<(), Error> {
     tonic_build::configure()
