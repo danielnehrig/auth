@@ -5,22 +5,33 @@ WORKDIR /app
 COPY ./Cargo.toml ./Cargo.toml
 RUN rustup default nightly
 RUN rustup component add rustfmt
+RUN apt-get -y update \
+    && apt-get -y install libssl-dev \
+    && apt-get install -y ca-certificates tzdata \
+    && apt-get -y install openssl \
+    && apt-get -y install curl \
+    && apt-get -y install protobuf-compiler \
+    && apt-get -y install ca-certificates tzdata \
+    && apt-get -y install pkg-config
 RUN cargo build --release
 RUN rm src/*.rs
 
 ADD . ./
 
-RUN rm ./target/release/deps/app*
 RUN cargo build --release
-
 
 FROM debian:stable-slim
 ARG APP=/usr/src/app
 
-RUN apt-get update \
-    && apt-get install -y ca-certificates tzdata \
-    && rm -rf /var/lib/apt/lists/*
 
+
+RUN apt-get -y update \
+    && apt-get -y install libssl-dev \
+    && apt-get install -y ca-certificates tzdata \
+    && apt-get -y install openssl \
+    && apt-get -y install curl \
+    && apt-get -y install protobuf-compiler \
+    && apt-get -y install pkg-config
 EXPOSE 8000
 
 ENV TZ=Etc/UTC \
