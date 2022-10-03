@@ -32,7 +32,7 @@ RUN apt-get -y update \
     && apt-get -y install curl \
     && apt-get -y install protobuf-compiler \
     && apt-get -y install pkg-config
-EXPOSE 8000
+EXPOSE 3000
 
 ENV TZ=Etc/UTC \
     APP_USER=appuser
